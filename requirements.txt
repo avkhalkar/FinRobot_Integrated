@@ -1,0 +1,8 @@
+numpy
+pydantic
+python-dotenv
+google-genai
+pinecone
+pydantic-settings
+colorama
+termcolor
