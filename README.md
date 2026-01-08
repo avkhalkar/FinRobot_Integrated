@@ -1,468 +1,124 @@
-🧠 Fin-Agent: A Modular, Self-Verifying AI Reasoning System
+# 🤖 FinRobot: Integrated Financial Analyst
 
+**FinRobot** is a production-grade, agentic AI system that combines **advanced reasoning** with **autonomous financial data retrieval**. 
 
+It integrates two powerful systems:
+1. **Agentic Reasoning Core**: A structured cognitive pipeline (Planner → Thinker → Verifier) ensuring explainable and hallucinations-free answers.
+2. **Autonomous RAG Engine**: A control plane that automatically fetches, indexes, and maintains fresh financial data (SEC filings, Stock Prices, News) from the web.
 
-This repository contains a production-grade, agentic AI system designed for financial reasoning, retrieval-augmented intelligence, and explainable decision-making.
+---
 
+## 🚀 Key Features
 
+- **Autonomous Data Acquisition**: Automatically detects tikers (e.g., "$AAPL") and fetches missing data (10-K, Prices) before answering.
+- **Verifiable Reasoning**: Every answer goes through a self-verification loop to check for factual accuracy and compliance.
+- **Long-Term Memory**: Remembers user preferences, risk tolerance, and past interactions.
+- **Hybrid Retrieval**: Combines structured financial data with unstructured semantic search over filings.
 
-It is not a chatbot toy.
+---
 
+## 🗂️ Project Structure
 
-
-It is a controlled cognitive pipeline built around:
-
-
-
-explicit reasoning stages,
-
-
-
-verifiable outputs,
-
-
-
-memory and personalization,
-
-
-
-and strict cost / hallucination control.
-
-
-
-The system runs entirely locally (or on your infra) and requires no external orchestration frameworks.
-
-
-
-🧩 What This System Actually Is
-
-
-
-Fin-Agent is a single-agent architecture with internal cognition layers, inspired by how humans reason:
-
-
-
-User → Planner → Thinker → Verifier → Explainer → User
-
-
-
-
-
-Each stage has a clear responsibility and is independently testable.
-
-
-
-The agent:
-
-
-
-retrieves information only when necessary
-
-
-
-verifies its own answers before returning them
-
-
-
-maintains long-term user context
-
-
-
-avoids hallucinations by construction, not by prompt hacks
-
-
-
-🗂️ Repository Structure
-
-Fin\_agent/
-
+```text
+FinRobot_Integrated/
 │
-
-├── chatbot\_ui.py              # Streamlit interface (entry point)
-
+├── chatbot_ui.py              # Main Entry Point (Streamlit UI)
+├── requirements.txt           # Integrated Dependencies
+├── .env                       # API Keys Configuration
 │
-
-├── agent/
-
-│   ├── meta\_agent.py          # Routing + orchestration brain
-
-│   ├── planner.py             # Task decomposition
-
-│   ├── thinker.py             # Retrieval + reasoning
-
-│   ├── verifier.py            # Factual \& compliance validation
-
-│   ├── explainer.py           # Final answer synthesis
-
-│   └── schemas.py             # Typed schemas for all components
-
+├── agent/                     # Agentic Cognitive Layer
+│   ├── meta_agent.py          # Orchestrator
+│   ├── planner.py             # Task Decomposition
+│   ├── thinker.py             # Reasoning & Synthesis
+│   └── verifier.py            # Safety & Fact Checking
 │
-
-├── memory/
-
-│   ├── memory\_manager.py      # Persistent user memory
-
-│   ├── chat\_summarizer.py     # Conversation compression
-
-│   └── user\_profile\_store.py  # Preferences \& behavioral traits
-
+├── rag_engine/                # Data & Retrieval Engine
+│   ├── src/
+│   │   ├── control_plane/     # Data Lifecycle (Fetch/Index)
+│   │   ├── inference_plane/   # Read-Only Retrieval
+│   │   └── orchestrate.py     # RAG Entry Point
 │
-
-├── retrieval/
-
-│   ├── pinecone\_client.py     # Vector DB access
-
-│   ├── semantic\_cache.py      # Query-level caching
-
-│   ├── query\_refiner.py       # Query rewriting / HyDE
-
-│   └── context\_compressor.py  # Token-efficient summarization
-
+├── retrieval/                 # Integration Layer
+│   └── pinecone_client.py     # Adapts RAG Engine for the Agent
 │
-
-├── prompts/
-
-│   ├── system\_base.txt
-
-│   ├── planner\_prompt.txt
-
-│   ├── thinker\_prompt.txt
-
-│   ├── verifier\_prompt.txt
-
-│   └── explainer\_prompt.txt
-
-│
-
-├── evaluation/
-
-│   ├── ragas\_runner.py        # Automated evals
-
-│   ├── aspect\_critics.py      # Domain \& logic critics
-
-│   └── trace\_logger.py
-
-│
-
-├── config/
-
-│   ├── settings.py
-
-│   ├── compliance\_rules.py
-
-│   └── token\_budgets.py
-
-│
-
-├── utils/
-
-│   ├── llm\_client.py
-
-│   ├── json\_utils.py
-
-│   ├── similarity.py
-
-│   └── logging.py
-
-│
-
-├── main\_agent.py              # Core execution pipeline
-
-├── chatbot\_ui.py              # Streamlit UI (run this)
-
-├── requirements.txt
-
-├── .env
-
-└── .gitignore
-
-
-
-🚀 Quick Start
-
-1\. Create and activate environment
-
-python -m venv venv
-
-source venv/bin/activate   # Windows: venv\\Scripts\\activate
-
-
-
-2\. Install dependencies
-
-pip install -r requirements.txt
-
-
-
-3\. Configure environment
-
-
-
-Create a .env file:
-
-
-
-OPENAI\_API\_KEY=your\_key\_here
-
-PINECONE\_API\_KEY=your\_key
-
-PINECONE\_ENV=your\_env
-
-
-
-
-
-(Additional config options live in config/settings.py.)
-
-
-
-▶️ Running the System
-
-Start the chatbot UI
-
-streamlit run chatbot\_ui.py
-
-
-
-What happens next:
-
-
-
-User is asked for a user ID
-
-
-
-System checks if the user already exists
-
-
-
-If new → profile initialization
-
-
-
-Conversation begins
-
-
-
-Memory, verification, and retrieval all run automatically
-
-
-
-You interact with the agent like a normal chat — but internally it’s executing a full reasoning pipeline.
-
-
-
-🧠 How the Agent Thinks (High Level)
-
-1\. Meta Agent
-
-
-
-Decides how to answer:
-
-
-
-Simple → fast path
-
-
-
-Complex → full reasoning chain
-
-
-
-High risk → verification enforced
-
-
-
-2\. Planner
-
-
-
-Breaks the query into structured steps and intents.
-
-
-
-3\. Thinker
-
-
-
-Retrieves knowledge only when needed, compresses it, and forms a draft answer.
-
-
-
-4\. Verifier
-
-
-
-Checks:
-
-
-
-factual correctness
-
-
-
-numerical validity
-
-
-
-compliance constraints
-
-
-
-If anything fails → loop back.
-
-
-
-5\. Explainer
-
-
-
-Produces the final answer with:
-
-
-
-concise reasoning
-
-
-
-inline citations
-
-
-
-zero chain-of-thought leakage
-
-
-
-🧠 Memory System
-
-
-
-The agent remembers:
-
-
-
-user preferences
-
-
-
-risk tolerance
-
-
-
-explanation depth
-
-
-
-prior misunderstandings
-
-
-
-Memory is:
-
-
-
-summarized
-
-
-
-token-bounded
-
-
-
-scoped per user
-
-
-
-This allows long-term personalization without bloating context windows.
-
-
-
-🔍 Evaluation \& Safety
-
-
-
-Built-in evaluation includes:
-
-
-
-Faithfulness checks
-
-
-
-Retrieval accuracy
-
-
-
-Domain compliance
-
-
-
-Numerical consistency
-
-
-
-These run offline or periodically and do not affect latency.
-
-
-
-🧪 Why This Architecture Works
-
-
-
-No monolithic prompts
-
-
-
-No hallucination-by-default
-
-
-
-No uncontrolled tool calls
-
-
-
-No wasted tokens
-
-
-
-No blind trust in LLM output
-
-
-
-You get predictable behavior, auditable reasoning, and scalable intelligence.
-
-
-
-🧭 Final Note
-
-
-
-This isn’t a chatbot.
-
-It’s a reasoning system with guardrails.
-
-
-
-If you extend it carefully, you can build:
-
-
-
-finance copilots
-
-
-
-research agents
-
-
-
-compliance assistants
-
-
-
-internal decision engines
-
-
-
-All without losing control of logic or cost.
-
+├── memory/                    # User Context & Long-term Memory
+├── prompts/                   # System Prompts
+└── config/                    # Settings & Rules
+```
+
+---
+
+## 🛠️ Installation
+
+1. **Clone & Enter Directory**:
+   ```bash
+   cd FinRobot_Integrated
+   ```
+
+2. **Create Environment**:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # Windows: .venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure Environment**:
+   Create a `.env` file with the following keys:
+   ```env
+   # LLM Providers
+   OPENAI_API_KEY=sk-...  (or GEMINI_API_KEY)
+
+   # Vector Database
+   PINECONE_API_KEY=...
+   PINECONE_INDEX_NAME=financial-analysis  (Ensure this index exists)
+   PINECONE_ENV=us-east-1
+
+   # RAG Data Sources
+   HUGGING_FACE_API_KEY=hf_...  (For embeddings)
+   NEWSAPI_KEY=...              (Optional: For news)
+   ```
+
+---
+
+## ▶️ Usage
+
+Start the application:
+```bash
+streamlit run chatbot_ui.py
+```
+
+### Example Workflow
+1. **Login**: Enter a User ID (e.g., "analyst_01").
+2. **Profile**: Set your risk tolerance and explanation depth.
+3. **Ask**: *"Analyze the risk factors for Apple based on their latest 10-K."*
+4. **Agent Action**:
+   - Identifies "AAPL".
+   - **RAG Engine**: Checks if 2025 10-K is indexed. If not, downloads from SEC EDGAR and segments it.
+   - **Retrieval**: Finds relevant risk sections.
+   - **Thinker**: Synthesizes an answer citing specific sections.
+   - **Verifier**: Double-checks the claims against the retrieved text.
+   - **Response**: Delivers the final answer to you.
+
+---
+
+## 🧠 Architecture Details
+
+### The Agent (Reasoning)
+The agent avoids "black box" generation by splitting the process:
+- **Planner**: "I need to find Apple's 10-K and look for 'Risk Factors'."
+- **Thinker**: Executes the retrieval and drafts a response.
+- **Verifier**: "The draft claims revenue grew 5%, but the text says 3%. Correction needed."
+
+### The RAG Engine (Data)
+A "Two-Plane" architecture ensures data integrity:
+- **Control Plane**: Write-Only. Ensures data is fresh. Mirrors local disk to Pinecone.
+- **Inference Plane**: Read-Only. Fast semantic search for the Agent.
+
+---
+
+## 📄 License
+MIT License
