@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     PINECONE_API_KEY: str = Field(...)
     PINECONE_ENVIRONMENT: str = Field(...)
     PINECONE_INDEX_NAME: str = Field(...)
-    EMBEDDING_DIMENSION: int = Field(default=768)
+    EMBEDDING_DIMENSION: int = Field(default=384)
 
     # --- Performance / Cost Control ---
     RAG_TOP_K: int = Field(default=8)
@@ -43,4 +43,14 @@ class Settings(BaseSettings):
 
 
 # Initialize settings singleton
-settings = Settings()
+# Initialize settings singleton
+try:
+    settings = Settings()
+except Exception as e:
+    import os
+    print(f"CRITICAL ERROR: Failed to load settings. Environment file: {ENV_FILE}")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Detailed error: {e}")
+    # Re-raise to stop execution, but the user will see the print above
+    raise
+

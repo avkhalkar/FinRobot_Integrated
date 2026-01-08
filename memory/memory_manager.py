@@ -57,7 +57,7 @@ class MemoryManager:
         
         # 2. Initialize FAISS for Vectors (Using IndexIDMap for deletion support)
         # Using IndexFlatIP for Inner Product (Cosine Similarity if normalized)
-        self.dimension =  getattr(settings, "EMBEDDING_DIMENSION", 768) 
+        self.dimension =  getattr(settings, "EMBEDDING_DIMENSION", 384) 
         self.index_path = self.data_dir / "memory.index"
         
         if self.index_path.exists():
@@ -282,7 +282,7 @@ class MemoryManager:
             return memories
 
         except Exception as e:
-            logger.error(f"Retrieval error: {e}")
+            logger.error(f"Retrieval error: {e}", exc_info=True)
             return []
 
     def check_and_update_profile_pre_planning(self, user_id: str, user_query: str):

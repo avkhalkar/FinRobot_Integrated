@@ -91,6 +91,15 @@ def refine_query(original_query: str, chat_history: str = "None") -> List[str]:
             temperature=0.3
         )
         
+        # --- Pre-Validation: Handle List Output ---
+        # LLMs sometime return a list [ { ... } ] instead of the object { ... }
+        parsed_strategy = safe_json_load(strategy_resp)
+        if isinstance(parsed_strategy, list) and len(parsed_strategy) > 0:
+            if isinstance(parsed_strategy[0], dict):
+                logger.info("Strategy selection returned a list. Unwrapping first item.")
+                strategy_resp = json.dumps(parsed_strategy[0])
+
+        
         # Validation & Repair
         is_valid_strategy = validate_json_structure(strategy_resp, json.dumps(strategy_json_schema))
         

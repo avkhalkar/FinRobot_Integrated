@@ -53,9 +53,11 @@ def load_components():
     logger.info("Initializing System Components (Agent, Store, Memory)...")
     try:
         agent_instance = MetaAgent()
-        store_instance = UserProfileStore()
-        manager_instance = MemoryManager()
-        logger.info("System Components initialized successfully.")
+        # Reuse the components created by the Agent to ensure singleton behavior
+        manager_instance = agent_instance.memory
+        store_instance = manager_instance.profile_store
+        
+        logger.info("System Components initialized successfully (Singleton Pattern).")
         return agent_instance, store_instance, manager_instance
     except Exception as e:
         logger.critical(f"System Component Initialization Failed: {e}", exc_info=True)
