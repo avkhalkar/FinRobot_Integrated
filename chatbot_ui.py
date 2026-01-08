@@ -23,7 +23,7 @@ logger = get_logger("CHATBOT_UI")
 
 # --- UI Configuration ---
 st.set_page_config(
-    page_title="Agentic RAG System",
+    page_title="FinRobot Integrated",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -265,7 +265,7 @@ def chat_interface():
 def main():
     if not st.session_state.authenticated:
         # === LOGIN SCREEN ===
-        st.title("🤖 Agentic RAG System")
+        st.title("🤖 FinRobot: Integrated Financial Analyst")
         st.markdown("### Authentication")
         
         col1, col2 = st.columns([1, 1])

@@ -26,21 +26,39 @@ except ImportError as e:
 
 logger = get_logger("PINECONE_CLIENT")
 
-# --- Initialization ---
+# --- RAG Integration ---
+try:
+    from rag_engine.src.orchestrate import orchestrate
+    from rag_engine.src.control_plane.manager import DataChecklist
+    RAG_AVAILABLE = True
+except ImportError as e:
+    logger.critical(f"RAG Engine import failed: {e}")
+    RAG_AVAILABLE = False
+
+# Remove direct Pinecone Init as rag_engine handles it
 pc: Optional[Pinecone] = None
 index: Any = None
 
-try:
-    if settings.PINECONE_API_KEY and settings.PINECONE_INDEX_NAME:
-        pc = Pinecone(api_key=settings.PINECONE_API_KEY)
-        index = pc.Index(settings.PINECONE_INDEX_NAME)
-        logger.info(f"Connected to Pinecone index: {settings.PINECONE_INDEX_NAME}")
-    else:
-        logger.critical("Pinecone API Key or Index Name missing in settings.")
-except Exception as e:
-    logger.critical(f"Pinecone initialization failed: {e}")
-
-# --- Core Functions ---
+def extract_ticker(query: str) -> str:
+    """
+    Simple heuristic to find a ticker in the query.
+    Defaults to AAPL if none found (Temporary for integration).
+    """
+    # Common tech tickers for demo
+    # Ordered by length to match specific longer tickers first
+    tickers = ["GOOGL", "MSFT", "AAPL", "AMZN", "META", "NVDA", "TSLA", "JPM", "JNJ", "TCS", "INFY"]
+    query_upper = query.upper()
+    
+    # Check for Apple specifically as it's common
+    if "APPLE" in query_upper:
+        return "AAPL"
+        
+    for t in tickers:
+        if t in query_upper:
+            return t
+            
+    # Fallback to AAPL if no known ticker found
+    return "AAPL"
 
 def retrieve(
     query: str, 
@@ -49,61 +67,48 @@ def retrieve(
     top_k: int = settings.RAG_TOP_K
 ) -> List[Chunk]:
     """
-    Performs a raw semantic vector search on the Pinecone index.
-    Returns: List[Chunk]
+    Proxies the request to the Financial Analysis RAG Engine.
     """
-    if not index:
-        logger.error("Pinecone index is not initialized. Returning empty results.")
+    if not RAG_AVAILABLE:
+        logger.error("RAG Engine not available.")
         return []
 
     if not query:
         logger.warning("Empty query provided to retrieve().")
         return []
 
-    # 1. Generate Embedding
-    query_vector = get_embedding(query)
-    if not query_vector:
-        logger.error("Failed to generate embedding for retrieval query.")
-        return []
-    
-    # 2. Query Pinecone
-    try:
-        search_args = {
-            "vector": query_vector,
-            "top_k": top_k,
-            "include_metadata": True
-        }
-        
-        if filters:
-            search_args["filter"] = filters
-        
-        if namespace:
-            search_args["namespace"] = namespace
+    ticker = extract_ticker(query)
+    logger.info(f"Delegating retrieval to RAG Engine for Ticker: {ticker}")
 
-        results = index.query(**search_args)
+    try:
+        # Orchestrate handles Freshness + Retrieval
+        # We perform a 'Retrieve Only' logical flow but via the orchestrator to ensure data is there.
+        # Check if we should enforce unstructured data (e.g. if query mentions 'filing' or 'report')
+        checklist = DataChecklist(structured=["price"], unstructured=True)
+        
+        result = orchestrate(
+            ticker=ticker,
+            query=query,
+            checklist=checklist,
+            top_k=top_k
+        )
         
         chunks = []
-        for match in results.matches:
-            meta = match.metadata if match.metadata else {}
-            # Ensure text exists to avoid processing empty records
-            text_content = meta.get("text", "")
-            if not text_content:
-                continue
-                
+        for match in result.retrieval_matches:
             chunks.append(
                 Chunk(
-                    id=match.id,
-                    text=text_content,
-                    score=match.score if match.score else 0.0,
-                    metadata=meta
+                    id=match.get('id', 'unknown'),
+                    text=match.get('text', ''),
+                    score=match.get('score', 0.0),
+                    metadata=match.get('metadata', {})
                 )
             )
         
-        logger.info(f"Retrieved {len(chunks)} chunks for query: '{query[:30]}...'")
+        logger.info(f"RAG Engine returned {len(chunks)} chunks.")
         return chunks
 
     except Exception as e:
-        logger.error(f"Vector search failed: {e}")
+        logger.error(f"RAG Engine failure: {e}")
         return []
 
 def smart_retrieve(query: str, chat_history: str = "None") -> List[Chunk]:
