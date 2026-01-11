@@ -4,6 +4,35 @@ from pinecone import Pinecone
 import sys
 from pathlib import Path
 
+import re
+import unicodedata
+
+def clean_text(text: str) -> str:
+    """
+    Normalizes and cleans retrieved text without changing meaning.
+    """
+    if not text:
+        return ""
+
+    # Normalize unicode (kills weird checkbox variants)
+    text = unicodedata.normalize("NFKD", text)
+
+    # Remove checkbox / ballot symbols explicitly
+    text = re.sub(r"[☒☐✓✔✗✘]", "", text)
+
+    # Collapse multiple newlines into one
+    text = re.sub(r"\n{2,}", "\n", text)
+
+    # Collapse excessive spaces
+    text = re.sub(r"[ \t]{2,}", " ", text)
+
+    # Trim each line
+    text = "\n".join(line.strip() for line in text.splitlines())
+
+    # Final strip
+    return text.strip()
+
+
 # --- Path Setup ---
 current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parent
@@ -119,14 +148,22 @@ def retrieve(
         
         chunks = []
         for match in result.matches:
+
+            cleaned_text = clean_text(match.text)
+
+            metadata = dict(match.metadata) if match.metadata else {}
+            if "text" in metadata and isinstance(metadata["text"], str):
+                metadata["text"] = clean_text(metadata["text"])
+
             chunks.append(
                 Chunk(
                     id=match.id,
-                    text=match.text,
+                    text=cleaned_text,
                     score=match.score,
-                    metadata=match.metadata
+                    metadata=metadata
                 )
             )
+
         
         logger.info(f"RAG Engine returned {len(chunks)} chunks.")
         return chunks

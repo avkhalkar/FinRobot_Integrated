@@ -17,7 +17,8 @@ try:
     from rag_engine.src.embeddings.embedding_provider import embed_query
 except ImportError:
     # Fallback or error if RAG not available
-    def embed_query(text): return []
+    def embed_query(text):
+        raise RuntimeError("embed_query unavailable – RAG engine not loaded")
 
 from utils.logger import get_logger
 from agent.schemas import PlanSchema, ThinkerOutput, VerificationReport
@@ -25,7 +26,7 @@ from agent.schemas import PlanSchema, ThinkerOutput, VerificationReport
 logger = get_logger("SEMANTIC_CACHE")
 
 CACHE_NAMESPACE = "semantic_cache"
-CACHE_THRESHOLD = 0.98  # High threshold for exact semantic matches
+CACHE_THRESHOLD = 0.90  # High threshold for exact semantic matches
 
 def clear_cache() -> bool:
     """Wipes the cache (use when docs are updated)."""
@@ -92,7 +93,7 @@ def retrieve_cache(query: str) -> Optional[Dict[str, Any]]:
 
         # Query Pinecone without profile filters
         results = index.query(
-            vector=query_vector,
+            vector=vector,
             top_k=1,
             include_metadata=True,
             namespace=CACHE_NAMESPACE
