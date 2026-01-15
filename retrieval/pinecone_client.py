@@ -27,10 +27,10 @@ def clean_text(text: str) -> str:
     text = re.sub(r"[ \t]{2,}", " ", text)
 
     # Trim each line
-    text = "\n".join(line.strip() for line in text.splitlines())
+    text = ", ".join(line.strip() for line in text.splitlines() if line.strip())
 
     # Final strip
-    return text.strip()
+    return text.strip(", ")
 
 
 # --- Path Setup ---
