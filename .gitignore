@@ -4,6 +4,7 @@
 
 # Virtual Environment Directory
 /venv/
+/.venv/
 
 # Environment Variables (SENSITIVE)
 .env
