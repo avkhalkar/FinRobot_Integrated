@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     PINECONE_API_KEY: str = Field(...)
     PINECONE_ENVIRONMENT: str = Field(...)
     PINECONE_INDEX_NAME: str = Field(...)
-    EMBEDDING_DIMENSION: int = Field(default=384)
+    EMBEDDING_DIMENSION: int = Field(default=768)
 
     # --- Performance / Cost Control ---
     RAG_TOP_K: int = Field(default=8)

@@ -57,7 +57,7 @@ class MemoryManager:
         
         # 2. Initialize FAISS for Vectors (Using IndexIDMap for deletion support)
         # Using IndexFlatIP for Inner Product (Cosine Similarity if normalized)
-        self.dimension =  getattr(settings, "EMBEDDING_DIMENSION", 384) 
+        self.dimension =  getattr(settings, "EMBEDDING_DIMENSION", 768) 
         self.index_path = self.data_dir / "memory.index"
         
         if self.index_path.exists():

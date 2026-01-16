@@ -45,7 +45,7 @@ class UserProfileStore:
         # 2. Initialize FAISS for Vectors
         # Assuming standard dimension 1536 (OpenAI) or from settings. 
         # If your embeddings are different, adjust 'd'.
-        self.dimension = getattr(settings, "EMBEDDING_DIMENSION", 384)
+        self.dimension = getattr(settings, "EMBEDDING_DIMENSION", 768)
         self.index_path = self.data_dir / "user_profiles.index"
         
         if self.index_path.exists():
