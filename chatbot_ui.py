@@ -7,8 +7,9 @@ from typing import Literal
 # --- Path Setup ---
 # Ensure the project root is in sys.path so we can import modules
 current_dir = Path(__file__).resolve().parent
-if str(current_dir) not in sys.path:
-    sys.path.append(str(current_dir))
+project_root = current_dir.parent
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
 
 # --- Internal Imports ---
 from agent.meta_agent import MetaAgent
