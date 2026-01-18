@@ -6,6 +6,10 @@ from typing import Literal, cast
 from pathlib import Path
 import json
 
+# Import for normalizing tickers
+from src.control_plane.ticker_normalizer import normalize_for_yfinance
+
+
 # Import serialization from same package
 try:
     from .data_serialization import seralize_paraquet
@@ -23,7 +27,9 @@ def fetch_and_store_stock_data(
     print(f"Fetching {report_type} for {ticker}...")
 
     ticker = ticker.strip().upper()
-    stock = yf.Ticker(ticker)
+    # Normalize ticker
+    yf_ticker = normalize_for_yfinance(ticker)
+    stock = yf.Ticker(yf_ticker)
 
     try:
         df = pd.DataFrame()
