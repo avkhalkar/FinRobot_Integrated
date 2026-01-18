@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional, Set
 from pinecone import Pinecone
 import sys
 from pathlib import Path
+import os
 
 import re
 import unicodedata
@@ -54,6 +55,9 @@ except ImportError as e:
 
 # --- Smart Retrieval Imports ---
 try:
+    print("CWD:", os.getcwd())
+    print("rag_engine exists:", (Path(project_root) / "rag_engine").exists())
+    print("sys.path:", sys.path)
     from retrieval.query_refiner import refine_query
     from retrieval.context_compressor import compress_context
     SMART_COMPONENTS_AVAILABLE = True
@@ -75,11 +79,19 @@ pc: Optional[Pinecone] = None
 index: Any = None
 
 try:
-    reader = InferenceReader()
-    index = reader.index # Expose index for cache if needed
-    pc = reader.pc
+    if RAG_AVAILABLE:
+        reader = InferenceReader()
+        index = reader.index # Expose index for cache if needed
+        pc = reader.pc
+    else:
+        reader = None
+        index = None
+        pc = None
 except Exception as e:
     logger.warning(f"Could not initialize InferenceReader globally: {e}")
+    reader = None
+    index = None
+    pc = None
 
 def extract_ticker(query: str) -> str:
     """

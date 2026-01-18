@@ -5,17 +5,39 @@ from pathlib import Path
 from typing import Literal
 
 # --- Path Setup ---
-# Ensure the project root is in sys.path so we can import modules
 current_dir = Path(__file__).resolve().parent
+
+# FORCE LOCAL VENV SITE-PACKAGES (Fix for user environment mix-up)
+# If running via a different python or messed up environment, we try to load .venv libs explicitly.
+venv_site_packages = current_dir / ".venv" / "Lib" / "site-packages"
+if venv_site_packages.exists():
+    site_pkg_str = str(venv_site_packages)
+    if site_pkg_str not in sys.path:
+        # Prepend to ensure local packages take precedence (over global or wrong venv)
+        sys.path.insert(0, site_pkg_str)
+        print(f"[CHATBOT_UI] Injected local venv site-packages: {site_pkg_str}")
+
+# Add the current directory explicitly (FinRobot_Integrated)
 if str(current_dir) not in sys.path:
     sys.path.append(str(current_dir))
+# Add the parent directory to match main_agent.py behavior (Company Chatbot Project)
+if str(current_dir.parent) not in sys.path:
+    sys.path.append(str(current_dir.parent))
 
 # --- Internal Imports ---
-from agent.meta_agent import MetaAgent
-from memory.user_profile_store import UserProfileStore
-from memory.memory_manager import MemoryManager
-from agent.schemas import UserProfileSchema
-from utils.logger import setup_logging, get_logger
+try:
+    from agent.meta_agent import MetaAgent
+    from memory.user_profile_store import UserProfileStore
+    from memory.memory_manager import MemoryManager
+    from agent.schemas import UserProfileSchema
+    from utils.logger import setup_logging, get_logger
+except ImportError as e:
+    st.error(f"CRITICAL IMPORT ERROR: {e}")
+    st.code(f"Current sys.path: {sys.path}")
+    st.stop()
+except Exception as e:
+    st.error(f"CRITICAL STARTUP ERROR: {e}")
+    st.stop()
 
 # Initialize System Logging
 setup_logging()
