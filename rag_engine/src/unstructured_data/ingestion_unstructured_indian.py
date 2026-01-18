@@ -14,6 +14,12 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+# Try to import PyMuPDF for PDF extraction
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
+    print("Warning: PyMuPDF (fitz) not installed. PDF text extraction will be skipped.")
 
 # Base data directory (resolved from this file's location)
 BASE_OUTPUT_DIR = Path(__file__).resolve().parents[3] / "data"
@@ -39,8 +45,6 @@ HEADERS = {
     "Origin": "https://www.bseindia.com",
     "Connection": "keep-alive",
 }
-
-
 
 def ensure_dirs(ticker: str) -> Path:
     """
@@ -150,10 +154,25 @@ def fetch_bse_metadata_chunk(scrip_code: str, date_from: str, date_to: str, retr
 
     return []
 
+def extract_text_from_pdf(pdf_path: Path) -> str:
+    """Extract text content from a PDF file."""
+    if not fitz:
+        return ""
+    
+    text_content = []
+    try:
+        with fitz.open(pdf_path) as doc:
+            for page in doc:
+                text_content.append(page.get_text())
+    except Exception as e:
+        print(f"Warning: Failed to extract text from {pdf_path.name}: {e}")
+        return ""
+        
+    return "\n".join(text_content)
 
 def process_company(ticker: str, scrip_code: str) -> dict:
     """
-    Process a company: fetch metadata and download PDFs.
+    Process a company: fetch metadata, download PDFs, AND extract text for RAG.
 
     Args:
         ticker: Stock ticker symbol
@@ -164,8 +183,10 @@ def process_company(ticker: str, scrip_code: str) -> dict:
     """
     ticker = ticker.upper()
     print(f"\n[BSE] Processing {ticker} (scrip: {scrip_code})")
-    save_dir = ensure_dirs(ticker)
-
+    
+    # ensure_dirs returns .../unstructured/raw
+    raw_dir = ensure_dirs(ticker)
+    
     date_chunks = get_date_chunks(TOTAL_HISTORY_DAYS)
     all_pdfs = []
 
@@ -196,6 +217,9 @@ def process_company(ticker: str, scrip_code: str) -> dict:
     downloaded = 0
     skipped = 0
     failed = 0
+    
+    # Store combined text for RAG
+    combined_text_parts = []
 
     for doc in all_pdfs:
         # Create safe filename
@@ -205,25 +229,35 @@ def process_company(ticker: str, scrip_code: str) -> dict:
         )
         safe_date = doc["date"].split("T")[0].replace("-", "")
         filename = f"{safe_date}_{safe_subject}.pdf"
-        filepath = save_dir / filename
+        filepath = raw_dir / filename
 
-        if filepath.exists():
+        if not filepath.exists():
+            try:
+                print(f"  Downloading: {filename[:50]}...")
+                r = requests.get(doc["url"], headers=HEADERS, timeout=30)
+                r.raise_for_status()
+
+                with open(filepath, "wb") as f:
+                    f.write(r.content)
+                downloaded += 1
+                time.sleep(0.5)  # Rate limiting between downloads
+
+            except Exception as e:
+                print(f"  [!] Failed: {filename[:30]}... - {e}")
+                failed += 1
+                continue # Skip processing if download failed
+        else:
             skipped += 1
-            continue
-
-        try:
-            print(f"  Downloading: {filename[:50]}...")
-            r = requests.get(doc["url"], headers=HEADERS, timeout=30)
-            r.raise_for_status()
-
-            with open(filepath, "wb") as f:
-                f.write(r.content)
-            downloaded += 1
-            time.sleep(0.5)  # Rate limiting between downloads
-
-        except Exception as e:
-            print(f"  [!] Failed: {filename[:30]}... - {e}")
-            failed += 1
+            
+        # Extract text from the PDF (whether newly downloaded or existing)
+        # We perform this every time to rebuild the data.json, implicitly ensuring freshness
+        # Optimization: In a real system we might cache extracted text, but here we rebuild.
+        if filepath.exists():
+            print(f"  Extracting text from: {filename[:50]}...")
+            pdf_text = extract_text_from_pdf(filepath)
+            if pdf_text and len(pdf_text.strip()) > 100:
+                header = f"\n\n{'='*20}\nDOC: {doc['subject']} ({doc['date']})\n{'='*20}\n"
+                combined_text_parts.append(header + pdf_text)
 
     # Save metadata file for freshness tracking
     metadata = {
@@ -236,11 +270,31 @@ def process_company(ticker: str, scrip_code: str) -> dict:
         "failed": failed,
     }
 
-    metadata_path = save_dir.parent / "metadata.json"
+    metadata_path = raw_dir.parent / "metadata.json" # .../unstructured/metadata.json
     with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
-    print(f"[BSE] Complete: {downloaded} new, {skipped} existing, {failed} failed")
+    # === SCHEMA FIX FOR INDEXER ===
+    # Combine all text and save as data.json in .../unstructured/data.json
+    # compatible with rag_engine/src/indexing/upsert_pinecone.py
+    
+    final_text = "".join(combined_text_parts)
+    
+    rag_record = {
+        "company": ticker,
+        "ticker": ticker,
+        "jurisdiction": "INDIA",
+        "source": "BSE Filings",
+        "filing_type": "PDF Aggregation",
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "text": final_text if final_text else "No textual content found in filings."
+    }
+    
+    data_path = raw_dir.parent / "data.json" # .../unstructured/data.json
+    with open(data_path, "w", encoding="utf-8") as f:
+        json.dump(rag_record, f, indent=2)
+
+    print(f"[BSE] Complete: {downloaded} new, {skipped} existing. Consolidated {len(final_text)} chars to {data_path.name}")
     return metadata
 
 
@@ -248,7 +302,6 @@ def process_company(ticker: str, scrip_code: str) -> dict:
 if __name__ == "__main__":
     targets = [
         {"ticker": "TCS", "scrip": "532540"},
-      
     ]
 
     for t in targets:
