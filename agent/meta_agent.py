@@ -1,6 +1,7 @@
 # agent/meta_agent.py
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Literal, Dict, Any
 
@@ -59,10 +60,13 @@ class MetaAgent:
         Main entry point for the agentic reasoning loop.
         """
         start_time = time.time()
+        current_ts = datetime.now().strftime("%A, %B %d, %Y | %H:%M:%S")
+        temporal_context = f"\n[SYSTEM_TIME]: {current_ts}"
         
         # --- 1. User Profile Update ---
         self.memory.check_and_update_profile_pre_planning(user_id, query)
         user_profile = self.memory.get_profile(user_id)
+        query += temporal_context
 
         # --- 2. Semantic Cache Check (Artifact Retrieval) ---
         cached_artifacts = retrieve_cache(query)
