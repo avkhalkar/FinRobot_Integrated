@@ -10,28 +10,57 @@ import unicodedata
 
 def clean_text(text: str) -> str:
     """
-    Normalizes and cleans retrieved text without changing meaning.
+    High-signal normalization for RAG chunks.
+    Preserves financial semantics while removing narration,
+    float noise, and timestamp artifacts.
     """
-    if not text:
+    if not text or not isinstance(text, str):
         return ""
 
-    # Normalize unicode (kills weird checkbox variants)
     text = unicodedata.normalize("NFKD", text)
 
-    # Remove checkbox / ballot symbols explicitly
+    # Remove junk symbols
     text = re.sub(r"[☒☐✓✔✗✘]", "", text)
 
-    # Collapse multiple newlines into one
+    # Remove full narrated headers cleanly (including timestamps)
+    text = re.sub(
+        r"Financial Report for .*? on \d{4}-\d{2}-\d{2} .*?:",
+        "",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    # Remove stray timezone fragments (e.g. '00:00-04:00:')
+    text = re.sub(r"\b\d{2}:\d{2}-\d{2}:\d{2}:?", "", text)
+
+    # Normalize bullets
+    text = re.sub(r"[•‣▪▫–—]+", "-", text)
+
+    # Convert bullets to key=value
+    text = re.sub(
+        r"-\s*([A-Za-z][A-Za-z\s\/]+):\s*",
+        r"\1=",
+        text
+    )
+
+    # Round excessive float precision (safe, meaning-preserving)
+    def _round_float(match):
+        return f"{float(match.group()):.2f}"
+
+    text = re.sub(r"\d+\.\d{5,}", _round_float, text)
+
+    # Collapse whitespace
+    text = re.sub(r"[ \t]{2,}", " ", text)
     text = re.sub(r"\n{2,}", "\n", text)
 
-    # Collapse excessive spaces
-    text = re.sub(r"[ \t]{2,}", " ", text)
+    lines = [line.strip(" ,;-") for line in text.splitlines() if line.strip()]
 
-    # Trim each line
-    text = ", ".join(line.strip() for line in text.splitlines() if line.strip())
+    numeric_density = sum(c.isdigit() for c in text) / max(len(text), 1)
+    cleaned = "; ".join(lines) if numeric_density > 0.15 else " ".join(lines)
 
-    # Final strip
-    return text.strip(", ")
+    cleaned = re.sub(r"[;,]{2,}", ";", cleaned)
+    return cleaned.strip(" ,;")
+
 
 # --- Path Setup ---
 current_dir = Path(__file__).resolve().parent
