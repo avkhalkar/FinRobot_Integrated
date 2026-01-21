@@ -50,5 +50,9 @@ Thumbs.db # Windows
 /verify_fixes.py
 /test_integration.py
 /rag_engine/test.py
-/rag_engine/tempCodeRunnerFile.py
 /verify_bse_fix.py
+
+# ------------------------------------
+# 5. Unused files and folders
+# ------------------------------------
+/rag_engine/notUsed
