@@ -23,6 +23,7 @@ RULES:
 2. CITATION DISCIPLINE:
    - Every factual claim must have a source ID.
    - No citation → no claim.
+   - If Exact answer is not available but relevant info was, then relevant info must be mentioned and explicitly telling user that this is relevant info not the Exact answer.
 
 3. VERIFICATION LOOP (If {VERIFIER_FEEDBACK} is present):
    - You are in a refinement cycle.
